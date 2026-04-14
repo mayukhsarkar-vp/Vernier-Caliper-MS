@@ -1,0 +1,2021 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VernierPro — Advanced Caliper Simulator | Made by Mayukh Sarkar</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=JetBrains+Mono:wght@300;400;500;600&family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c10;
+    --surface: #111318;
+    --surface2: #181c24;
+    --border: #2a2f3d;
+    --accent: #00d4ff;
+    --accent2: #ff6b35;
+    --accent3: #39ff14;
+    --gold: #ffd700;
+    --text: #e8eaf0;
+    --muted: #6b7280;
+    --steel: #8fa3b1;
+    --caliper-body: #c8d4db;
+    --caliper-dark: #8a9ba6;
+    --caliper-shadow: #5a6b74;
+    --caliper-highlight: #e8f0f5;
+    --scale-line: #1a2030;
+    --reading-glow: #00d4ff;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Sora', sans-serif;
+    overflow-x: hidden;
+    min-height: 100vh;
+  }
+
+  /* SCANLINE OVERLAY */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,212,255,0.01) 2px, rgba(0,212,255,0.01) 4px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* HEADER */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(10,12,16,0.95);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+  }
+
+  .logo {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.3rem;
+    font-weight: 900;
+    color: var(--accent);
+    text-shadow: 0 0 20px rgba(0,212,255,0.5);
+    letter-spacing: 2px;
+  }
+  .logo span { color: var(--accent2); }
+
+  nav { display: flex; gap: 2rem; align-items: center; }
+  nav a {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    transition: color 0.2s;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  nav a:hover { color: var(--accent); }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    padding: 0.5rem 1.2rem;
+    border-radius: 4px;
+    font-family: 'Orbitron', monospace;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .btn-primary:hover { background: #fff; transform: translateY(-1px); box-shadow: 0 4px 20px rgba(0,212,255,0.4); }
+
+  /* HERO */
+  .hero {
+    padding: 4rem 2rem 2rem;
+    text-align: center;
+    position: relative;
+  }
+  .hero-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(0,212,255,0.08);
+    border: 1px solid rgba(0,212,255,0.2);
+    padding: 0.3rem 1rem;
+    border-radius: 50px;
+    font-size: 0.75rem;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    margin-bottom: 1.5rem;
+    letter-spacing: 1px;
+  }
+  .hero h1 {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 900;
+    line-height: 1.1;
+    margin-bottom: 1rem;
+    background: linear-gradient(135deg, #fff 0%, var(--accent) 50%, var(--accent2) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero p {
+    color: var(--muted);
+    font-size: 1rem;
+    max-width: 600px;
+    margin: 0 auto 2rem;
+    line-height: 1.7;
+  }
+
+  /* MAIN SIMULATOR */
+  .simulator-wrap {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 1rem 4rem;
+  }
+
+  .simulator-grid {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 1.5rem;
+    align-items: start;
+  }
+
+  /* CONTROL PANEL */
+  .control-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    position: sticky;
+    top: 80px;
+  }
+
+  .panel-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .panel-title::before {
+    content: '';
+    width: 8px; height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--accent);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+
+  .control-group { margin-bottom: 1.5rem; }
+  .control-label {
+    font-size: 0.72rem;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 0.6rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .control-label span {
+    color: var(--accent3);
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .slider-track {
+    position: relative;
+    height: 6px;
+    background: var(--surface2);
+    border-radius: 3px;
+    margin-bottom: 0.5rem;
+    overflow: visible;
+  }
+  .slider-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 3px;
+    transition: width 0.05s;
+  }
+  input[type=range] {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0; left: 0;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 2;
+  }
+  .slider-thumb-display {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 16px; height: 16px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 10px var(--accent);
+    pointer-events: none;
+    transition: left 0.05s;
+  }
+
+  .num-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--accent3);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.1rem;
+    font-weight: 600;
+    padding: 0.6rem 0.8rem;
+    border-radius: 6px;
+    outline: none;
+    transition: border-color 0.2s;
+    text-align: center;
+    letter-spacing: 1px;
+  }
+  .num-input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(0,212,255,0.1); }
+
+  .unit-toggle {
+    display: flex;
+    gap: 0.4rem;
+    margin-bottom: 1rem;
+  }
+  .unit-btn {
+    flex: 1;
+    padding: 0.5rem;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--muted);
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 1px;
+  }
+  .unit-btn.active {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+    font-weight: 700;
+  }
+
+  .precision-select {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+  }
+  .prec-btn {
+    padding: 0.35rem 0.7rem;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--muted);
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .prec-btn.active {
+    background: var(--accent2);
+    color: #fff;
+    border-color: var(--accent2);
+  }
+
+  /* BIG READING DISPLAY */
+  .reading-display {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-top: 1.2rem;
+    text-align: center;
+  }
+  .reading-label { font-size: 0.65rem; color: var(--muted); font-family: 'JetBrains Mono', monospace; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 0.3rem; }
+  .reading-value {
+    font-family: 'Orbitron', monospace;
+    font-size: 2rem;
+    font-weight: 900;
+    color: var(--accent3);
+    text-shadow: 0 0 20px rgba(57,255,20,0.5);
+    letter-spacing: 2px;
+  }
+  .reading-unit { font-size: 0.9rem; color: var(--steel); font-family: 'JetBrains Mono', monospace; }
+
+  .reading-breakdown {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0.5rem;
+    margin-top: 0.8rem;
+  }
+  .breakdown-item {
+    background: rgba(0,0,0,0.3);
+    border-radius: 4px;
+    padding: 0.5rem 0.3rem;
+    text-align: center;
+  }
+  .breakdown-label { font-size: 0.55rem; color: var(--muted); font-family: 'JetBrains Mono', monospace; letter-spacing: 1px; text-transform: uppercase; }
+  .breakdown-val { font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; font-weight: 600; margin-top: 0.2rem; }
+
+  .action-btns { display: flex; gap: 0.5rem; margin-top: 1rem; }
+  .btn-sm {
+    flex: 1;
+    padding: 0.5rem;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text);
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+  }
+  .btn-sm:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-sm.danger:hover { border-color: #ff4444; color: #ff4444; }
+
+  /* CALIPER DISPLAY */
+  .caliper-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2rem;
+    overflow: hidden;
+  }
+
+  .caliper-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+    color: var(--steel);
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .caliper-canvas-wrap {
+    width: 100%;
+    overflow: hidden;
+    position: relative;
+  }
+
+  canvas#caliperCanvas {
+    display: block;
+    width: 100%;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: #050709;
+  }
+
+  /* SCALE VISUALIZATION */
+  .scale-viz {
+    margin-top: 1.5rem;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem;
+  }
+  .scale-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 0.8rem;
+  }
+  canvas#scaleCanvas {
+    display: block;
+    width: 100%;
+    border-radius: 4px;
+  }
+
+  /* TABS */
+  .tab-bar {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 1.5rem;
+    overflow-x: auto;
+  }
+  .tab-btn {
+    padding: 0.7rem 1.2rem;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 1px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    white-space: nowrap;
+    text-transform: uppercase;
+  }
+  .tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* INFO SECTIONS */
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    margin-top: 2rem;
+  }
+  .info-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.5rem;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+  .info-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    transform: scaleX(0);
+    transition: transform 0.3s;
+  }
+  .info-card:hover::before { transform: scaleX(1); }
+  .info-card:hover { border-color: rgba(0,212,255,0.3); transform: translateY(-2px); }
+
+  .info-icon { font-size: 1.8rem; margin-bottom: 0.8rem; }
+  .info-card h3 {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.8rem;
+    color: var(--accent);
+    letter-spacing: 1px;
+    margin-bottom: 0.5rem;
+  }
+  .info-card p { font-size: 0.82rem; color: var(--muted); line-height: 1.7; }
+
+  /* HISTORY */
+  .history-list { max-height: 300px; overflow-y: auto; }
+  .history-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.6rem 0.8rem;
+    border-radius: 6px;
+    margin-bottom: 0.4rem;
+    background: var(--surface2);
+    border: 1px solid transparent;
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+  .history-item:hover { border-color: var(--accent); }
+  .history-item .h-val { font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; font-weight: 600; color: var(--accent3); }
+  .history-item .h-time { font-size: 0.65rem; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+  .history-item .h-mode { font-size: 0.6rem; background: rgba(0,212,255,0.1); color: var(--accent); padding: 0.2rem 0.5rem; border-radius: 3px; font-family: 'JetBrains Mono', monospace; }
+
+  /* STATS BAR */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 1.5rem 0;
+  }
+  .stat-item {
+    padding: 1rem;
+    text-align: center;
+    border-right: 1px solid var(--border);
+  }
+  .stat-item:last-child { border-right: none; }
+  .stat-val { font-family: 'Orbitron', monospace; font-size: 1.2rem; font-weight: 700; color: var(--accent); }
+  .stat-label { font-size: 0.65rem; color: var(--muted); font-family: 'JetBrains Mono', monospace; letter-spacing: 1px; text-transform: uppercase; margin-top: 0.2rem; }
+
+  /* QUIZ */
+  .quiz-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.5rem;
+  }
+  .quiz-reading-display {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.5rem;
+    color: var(--gold);
+    text-align: center;
+    margin: 1rem 0;
+    text-shadow: 0 0 15px rgba(255,215,0,0.4);
+  }
+  .quiz-options { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
+  .quiz-opt {
+    padding: 0.8rem;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+  }
+  .quiz-opt:hover { border-color: var(--accent); color: var(--accent); }
+  .quiz-opt.correct { background: rgba(57,255,20,0.1); border-color: var(--accent3); color: var(--accent3); }
+  .quiz-opt.wrong { background: rgba(255,68,68,0.1); border-color: #ff4444; color: #ff4444; }
+
+  /* FOOTER */
+  footer {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 2rem;
+    text-align: center;
+  }
+  .footer-credits {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    letter-spacing: 2px;
+  }
+  .footer-credits a { color: var(--accent); text-decoration: none; }
+  .footer-credits span { color: var(--accent2); }
+
+  .badge-row { display: flex; justify-content: center; gap: 0.8rem; flex-wrap: wrap; margin: 1rem 0; }
+  .badge {
+    background: rgba(0,212,255,0.08);
+    border: 1px solid rgba(0,212,255,0.2);
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    padding: 0.3rem 0.8rem;
+    border-radius: 50px;
+    letter-spacing: 1px;
+  }
+
+  /* MODE INDICATOR */
+  .mode-indicator {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+  }
+  .mode-chip {
+    padding: 0.3rem 0.7rem;
+    border-radius: 50px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 1px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--muted);
+    background: var(--surface2);
+  }
+  .mode-chip.active {
+    background: rgba(255,107,53,0.15);
+    border-color: var(--accent2);
+    color: var(--accent2);
+  }
+
+  /* TOOLTIP */
+  .tooltip-area {
+    background: rgba(0,212,255,0.05);
+    border: 1px solid rgba(0,212,255,0.1);
+    border-radius: 6px;
+    padding: 0.6rem 0.8rem;
+    margin-top: 0.8rem;
+  }
+  .tooltip-area p { font-size: 0.75rem; color: var(--steel); line-height: 1.6; font-family: 'JetBrains Mono', monospace; }
+
+  /* FEEDBACK MODAL */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(8px);
+    z-index: 999;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2rem;
+    width: 90%;
+    max-width: 500px;
+    position: relative;
+  }
+  .modal h2 { font-family: 'Orbitron', monospace; font-size: 1rem; color: var(--accent); margin-bottom: 1.5rem; }
+  .modal-close {
+    position: absolute;
+    top: 1rem; right: 1rem;
+    background: none; border: none;
+    color: var(--muted); font-size: 1.2rem;
+    cursor: pointer;
+  }
+  textarea.feedback-input {
+    width: 100%;
+    height: 120px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 0.8rem;
+    font-family: 'Sora', sans-serif;
+    font-size: 0.85rem;
+    resize: none;
+    outline: none;
+    margin-bottom: 1rem;
+  }
+  textarea.feedback-input:focus { border-color: var(--accent); }
+  .name-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 0.7rem 0.8rem;
+    font-family: 'Sora', sans-serif;
+    font-size: 0.85rem;
+    outline: none;
+    margin-bottom: 1rem;
+  }
+  .name-input:focus { border-color: var(--accent); }
+
+  /* ADVANCED BADGE */
+  .advanced-section {
+    background: linear-gradient(135deg, rgba(0,212,255,0.05), rgba(255,107,53,0.05));
+    border: 1px solid rgba(0,212,255,0.15);
+    border-radius: 12px;
+    padding: 2rem;
+    margin: 2rem 0;
+  }
+  .advanced-section h2 {
+    font-family: 'Orbitron', monospace;
+    font-size: 1rem;
+    color: var(--accent);
+    letter-spacing: 2px;
+    margin-bottom: 1rem;
+  }
+
+  .feature-list { list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0.5rem; }
+  .feature-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    font-size: 0.82rem;
+    color: var(--steel);
+    line-height: 1.5;
+    padding: 0.4rem 0;
+  }
+  .feature-list li::before { content: '▸'; color: var(--accent3); flex-shrink: 0; margin-top: 0.05rem; }
+
+  /* DARK NEON GLOW */
+  .glow-accent { text-shadow: 0 0 15px rgba(0,212,255,0.6); }
+  .glow-green { text-shadow: 0 0 15px rgba(57,255,20,0.6); }
+
+  @media (max-width: 900px) {
+    .simulator-grid { grid-template-columns: 1fr; }
+    .control-panel { position: static; }
+    .stats-bar { grid-template-columns: repeat(2, 1fr); }
+    nav { display: none; }
+  }
+
+  /* LOADING ANIMATION */
+  .caliper-canvas-wrap {
+    animation: fadeIn 0.8s ease;
+  }
+  @keyframes fadeIn { from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+  .measurement-type-row { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+  .mtype-btn {
+    flex: 1;
+    min-width: 80px;
+    padding: 0.45rem 0.3rem;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--muted);
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.62rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+    letter-spacing: 0.5px;
+  }
+  .mtype-btn.active { background: rgba(0,212,255,0.12); border-color: var(--accent); color: var(--accent); }
+
+  /* STEP TRAINER */
+  .step-list { counter-reset: steps; list-style: none; }
+  .step-item {
+    counter-increment: steps;
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .step-item:last-child { border-bottom: none; }
+  .step-num {
+    width: 28px; height: 28px;
+    background: rgba(0,212,255,0.1);
+    border: 1px solid var(--accent);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Orbitron', monospace;
+    font-size: 0.7rem;
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+  .step-text { font-size: 0.82rem; color: var(--steel); line-height: 1.7; }
+  .step-text strong { color: var(--text); }
+
+  /* FORMULA BOX */
+  .formula-box {
+    background: rgba(57,255,20,0.05);
+    border: 1px solid rgba(57,255,20,0.2);
+    border-radius: 8px;
+    padding: 1rem 1.5rem;
+    text-align: center;
+    margin: 1rem 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9rem;
+    color: var(--accent3);
+    line-height: 2;
+  }
+  .formula-box .formula-title { font-size: 0.65rem; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 0.5rem; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">VERNIER<span>PRO</span></div>
+  <nav>
+    <a href="#simulator">Simulator</a>
+    <a href="#learn">Learn</a>
+    <a href="#quiz">Quiz</a>
+    <a href="#about">About</a>
+    <a href="https://unit.link/velvet-pages-official" target="_blank" class="btn-primary">Contact Us</a>
+  </nav>
+</header>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-tag">⚙️ Next-Gen Precision Instrument Simulator</div>
+  <h1>Interactive Vernier<br>Caliper Simulator</h1>
+  <p>The most advanced, feature-rich Vernier caliper simulator on the web. Real-time animation, multiple precision modes, quiz system, step-by-step reading trainer, and more.</p>
+  <div class="badge-row">
+    <span class="badge">⟨ 0.02mm Precision ⟩</span>
+    <span class="badge">⟨ Real-time Animation ⟩</span>
+    <span class="badge">⟨ MM + Inch Mode ⟩</span>
+    <span class="badge">⟨ Inside & Depth Modes ⟩</span>
+    <span class="badge">⟨ Interactive Quiz ⟩</span>
+    <span class="badge">⟨ Measurement History ⟩</span>
+  </div>
+</div>
+
+<!-- MAIN SIMULATOR -->
+<section id="simulator" class="simulator-wrap">
+
+  <!-- STATS BAR -->
+  <div class="stats-bar">
+    <div class="stat-item">
+      <div class="stat-val" id="statMeasurements">0</div>
+      <div class="stat-label">Measurements</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-val" id="statPrecision">0.02</div>
+      <div class="stat-label">Precision (mm)</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-val" id="statRange">0–150</div>
+      <div class="stat-label">Range (mm)</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-val" id="statScore">—</div>
+      <div class="stat-label">Quiz Score</div>
+    </div>
+  </div>
+
+  <div class="simulator-grid">
+
+    <!-- LEFT: CONTROL PANEL -->
+    <div class="control-panel">
+      <div class="panel-title">⚙ Control Panel</div>
+
+      <!-- Unit Toggle -->
+      <div class="control-group">
+        <div class="control-label">Unit System</div>
+        <div class="unit-toggle">
+          <button class="unit-btn active" onclick="setUnit('mm')">mm</button>
+          <button class="unit-btn" onclick="setUnit('cm')">cm</button>
+          <button class="unit-btn" onclick="setUnit('inch')">inch</button>
+        </div>
+      </div>
+
+      <!-- Precision Mode -->
+      <div class="control-group">
+        <div class="control-label">Least Count (mm)</div>
+        <div class="precision-select">
+          <button class="prec-btn active" onclick="setPrecision(0.02, this)">0.02</button>
+          <button class="prec-btn" onclick="setPrecision(0.05, this)">0.05</button>
+          <button class="prec-btn" onclick="setPrecision(0.1, this)">0.1</button>
+          <button class="prec-btn" onclick="setPrecision(0.02, this)" style="display:none">Custom</button>
+        </div>
+      </div>
+
+      <!-- Measurement Type -->
+      <div class="control-group">
+        <div class="control-label">Jaw Mode</div>
+        <div class="measurement-type-row">
+          <button class="mtype-btn active" onclick="setMode('outside', this)">🔵 Outside</button>
+          <button class="mtype-btn" onclick="setMode('inside', this)">🔴 Inside</button>
+          <button class="mtype-btn" onclick="setMode('depth', this)">⬇ Depth</button>
+        </div>
+      </div>
+
+      <!-- Measurement Value Slider -->
+      <div class="control-group">
+        <div class="control-label">Measurement <span id="sliderVal">0.00 mm</span></div>
+        <div class="slider-track">
+          <div class="slider-fill" id="sliderFill" style="width:0%"></div>
+          <div class="slider-thumb-display" id="sliderThumb" style="left:0%"></div>
+          <input type="range" id="mainSlider" min="0" max="150" step="0.02" value="0" oninput="sliderUpdate(this.value)">
+        </div>
+      </div>
+
+      <!-- Numeric input -->
+      <div class="control-group">
+        <div class="control-label">Direct Input (mm)</div>
+        <input type="number" class="num-input" id="directInput" min="0" max="150" step="0.02" value="0.00" oninput="directUpdate(this.value)">
+      </div>
+
+      <!-- Step buttons -->
+      <div class="action-btns">
+        <button class="btn-sm" onclick="stepValue(-1)">◀ −0.02</button>
+        <button class="btn-sm" onclick="stepValue(-0.1)">−0.1</button>
+        <button class="btn-sm" onclick="stepValue(0.1)">+0.1</button>
+        <button class="btn-sm" onclick="stepValue(1)">+0.02 ▶</button>
+      </div>
+
+      <div class="action-btns" style="margin-top:0.5rem">
+        <button class="btn-sm" onclick="randomize()">🎲 Random</button>
+        <button class="btn-sm" onclick="resetAll()">⟳ Reset</button>
+        <button class="btn-sm" onclick="saveMeasurement()">💾 Save</button>
+        <button class="btn-sm danger" onclick="clearHistory()">🗑 Clear</button>
+      </div>
+
+      <!-- Live Reading Display -->
+      <div class="reading-display">
+        <div class="reading-label">Current Reading</div>
+        <div class="reading-value"><span id="readingMain">0.00</span> <span class="reading-unit" id="readingUnit">mm</span></div>
+        <div class="reading-breakdown">
+          <div class="breakdown-item">
+            <div class="breakdown-label">Main Scale</div>
+            <div class="breakdown-val" id="bkMainScale" style="color:var(--accent)">0.0</div>
+          </div>
+          <div class="breakdown-item">
+            <div class="breakdown-label">Vernier Div</div>
+            <div class="breakdown-val" id="bkVernierDiv" style="color:var(--accent2)">0</div>
+          </div>
+          <div class="breakdown-item">
+            <div class="breakdown-label">Final</div>
+            <div class="breakdown-val" id="bkFinal" style="color:var(--accent3)">0.00</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tooltip -->
+      <div class="tooltip-area">
+        <p id="readingTip">💡 Align the zero mark of the vernier scale with the main scale to begin.</p>
+      </div>
+
+    </div>
+
+    <!-- RIGHT: CALIPER VISUALIZATION -->
+    <div class="caliper-section">
+
+      <div class="caliper-title">
+        <span>INTERACTIVE CALIPER VIEW</span>
+        <div class="mode-indicator">
+          <span class="mode-chip active" id="modeChipOutside" onclick="setMode('outside', null)">Outside Jaw</span>
+          <span class="mode-chip" id="modeChipInside" onclick="setMode('inside', null)">Inside Jaw</span>
+          <span class="mode-chip" id="modeChipDepth" onclick="setMode('depth', null)">Depth Rod</span>
+        </div>
+      </div>
+
+      <!-- Main Caliper Canvas -->
+      <div class="caliper-canvas-wrap">
+        <canvas id="caliperCanvas" height="380"></canvas>
+      </div>
+
+      <!-- Vernier Scale Close-up -->
+      <div class="scale-viz">
+        <div class="scale-title">Vernier Scale Close-up — Coinciding Line Detector</div>
+        <canvas id="scaleCanvas" height="110"></canvas>
+      </div>
+
+      <!-- TABS -->
+      <div style="margin-top:1.5rem">
+        <div class="tab-bar">
+          <button class="tab-btn active" onclick="showTab('tab-reading', this)">📐 Reading Guide</button>
+          <button class="tab-btn" onclick="showTab('tab-history', this)">📋 History</button>
+          <button class="tab-btn" onclick="showTab('tab-learn', this)">📚 Learn</button>
+          <button class="tab-btn" onclick="showTab('tab-quiz', this)">🎯 Quiz</button>
+          <button class="tab-btn" onclick="showTab('tab-about', this)">ℹ About</button>
+        </div>
+
+        <!-- TAB: READING GUIDE -->
+        <div id="tab-reading" class="tab-content active">
+          <div class="formula-box">
+            <div class="formula-title">Reading Formula</div>
+            Reading = Main Scale Reading + (Coinciding Vernier Division × Least Count)
+            <br>
+            <span id="formulaLive" style="color:var(--gold);font-size:0.85rem;"></span>
+          </div>
+          <ul class="step-list">
+            <li class="step-item"><div class="step-num">1</div><div class="step-text"><strong>Read the Main Scale:</strong> Note the reading just to the left of the vernier zero mark. Look for the last clearly visible graduation on the main scale.</div></li>
+            <li class="step-item"><div class="step-num">2</div><div class="step-text"><strong>Find Coinciding Line:</strong> Scan the vernier scale to find which graduation line exactly coincides (lines up) with any line on the main scale.</div></li>
+            <li class="step-item"><div class="step-num">3</div><div class="step-text"><strong>Apply Formula:</strong> Multiply the coinciding vernier division by the least count and add to the main scale reading.</div></li>
+            <li class="step-item"><div class="step-num">4</div><div class="step-text"><strong>Final Reading:</strong> The sum is your measured value with full precision. Verify units and record.</div></li>
+          </ul>
+          <div style="background:rgba(255,107,53,0.07);border:1px solid rgba(255,107,53,0.2);border-radius:8px;padding:1rem;margin-top:1rem;font-size:0.8rem;color:var(--steel);line-height:1.7;">
+            <strong style="color:var(--accent2)">⚡ Pro Tip:</strong> Always observe the caliper scale straight-on (perpendicular to your line of sight) to avoid parallax error — the most common mistake when reading a vernier caliper.
+          </div>
+        </div>
+
+        <!-- TAB: HISTORY -->
+        <div id="tab-history" class="tab-content">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:var(--muted);letter-spacing:1px;">SAVED MEASUREMENTS</span>
+            <button class="btn-sm" style="flex:none;padding:0.3rem 0.8rem;" onclick="exportHistory()">⬇ Export CSV</button>
+          </div>
+          <div class="history-list" id="historyList">
+            <div style="text-align:center;padding:2rem;color:var(--muted);font-size:0.8rem;font-family:'JetBrains Mono',monospace;">No saved measurements yet.<br>Press 💾 Save to record readings.</div>
+          </div>
+        </div>
+
+        <!-- TAB: LEARN -->
+        <div id="tab-learn" class="tab-content" id="learn">
+          <div class="info-grid" style="margin-top:0">
+            <div class="info-card">
+              <div class="info-icon">🔧</div>
+              <h3>What is a Vernier Caliper?</h3>
+              <p>A precision measuring instrument that uses a vernier scale to provide measurements more accurate than a standard ruler. Invented by Pierre Vernier in 1631, it can measure to 0.02mm precision.</p>
+            </div>
+            <div class="info-card">
+              <div class="info-icon">📏</div>
+              <h3>Main Scale</h3>
+              <p>The primary fixed scale graduated in millimetres (or 1/16 inches). The main scale reading is the last graduation to the left of the vernier zero mark.</p>
+            </div>
+            <div class="info-card">
+              <div class="info-icon">🔍</div>
+              <h3>Vernier Scale</h3>
+              <p>The sliding secondary scale with 50 (or 25/10) divisions. The vernier principle exploits the difference between main scale and vernier divisions to measure fractions accurately.</p>
+            </div>
+            <div class="info-card">
+              <div class="info-icon">⚖️</div>
+              <h3>Least Count</h3>
+              <p>The smallest measurement a caliper can make. Calculated as: LC = 1 MSD − 1 VSD = (1 mm) / (number of vernier divisions). For 50-division verniers, LC = 0.02 mm.</p>
+            </div>
+            <div class="info-card">
+              <div class="info-icon">🟦</div>
+              <h3>Outside Jaw</h3>
+              <p>The lower larger jaws measure external dimensions — diameter of rods, thickness of plates, outer width of objects.</p>
+            </div>
+            <div class="info-card">
+              <div class="info-icon">🟥</div>
+              <h3>Inside Jaw & Depth Rod</h3>
+              <p>The upper smaller jaws measure internal diameters (bores, holes). The depth rod at the back end measures the depth of holes and slots.</p>
+            </div>
+          </div>
+          <div class="formula-box" style="margin-top:1rem;">
+            <div class="formula-title">Least Count Formula</div>
+            LC = 1 MSD − 1 VSD &nbsp;|&nbsp; LC = (Smallest main scale div) ÷ (Number of vernier divisions)
+          </div>
+        </div>
+
+        <!-- TAB: QUIZ -->
+        <div id="tab-quiz" class="tab-content" id="quiz">
+          <div class="quiz-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+              <span style="font-family:'Orbitron',monospace;font-size:0.8rem;color:var(--accent);letter-spacing:1px;">READING CHALLENGE</span>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:var(--muted)">Score: <span id="quizScore" style="color:var(--accent3)">0</span> / <span id="quizTotal">0</span></div>
+            </div>
+            <p style="font-size:0.8rem;color:var(--steel);margin-bottom:0.5rem;">What is the reading shown on this caliper?</p>
+            <canvas id="quizCanvas" height="120" style="width:100%;display:block;border-radius:6px;border:1px solid var(--border);background:#050709;margin-bottom:0.5rem;"></canvas>
+            <div class="quiz-reading-display" id="quizDisplay">Generate a quiz!</div>
+            <div class="quiz-options" id="quizOptions">
+              <button class="quiz-opt" onclick="newQuiz()">▶ Start Quiz</button>
+            </div>
+            <div style="margin-top:1rem;font-size:0.75rem;color:var(--muted);font-family:'JetBrains Mono',monospace;text-align:center;" id="quizFeedback"></div>
+          </div>
+        </div>
+
+        <!-- TAB: ABOUT -->
+        <div id="tab-about" class="tab-content" id="about">
+          <div class="advanced-section" style="margin:0">
+            <h2>WHY VERNIERPRO IS MORE ADVANCED</h2>
+            <ul class="feature-list">
+              <li>Real-time smooth SVG-like canvas animation — caliper reacts instantly to every input change with fluid motion</li>
+              <li>Three measurement modes: Outside diameter, Inside bore, and Depth rod — all visually rendered accurately</li>
+              <li>Supports mm, cm, and inch unit systems with instant live conversion</li>
+              <li>Multiple precision/least count modes: 0.02 mm (50-div), 0.05 mm (20-div), 0.1 mm (10-div)</li>
+              <li>Zoomed Vernier Scale close-up that highlights the exact coinciding division with a glow marker</li>
+              <li>Live reading breakdown: Main Scale Reading + Vernier Division clearly displayed</li>
+              <li>Interactive Quiz system with auto-generated random readings and multiple-choice options</li>
+              <li>Measurement History with CSV export — save and recall any measurement</li>
+              <li>Step-by-step reading trainer with formula display and live calculation view</li>
+              <li>Direct numeric input + slider + fine step buttons for complete control</li>
+              <li>Mobile-responsive, dark-themed, professional UI built with CSS variables</li>
+              <li>Educational callouts: parallax error warnings, pro tips, formula boxes</li>
+              <li>Zero parallax error in digital simulation — perfect for learning and teaching</li>
+              <li>Statistics bar tracking measurement count, precision, and quiz performance</li>
+            </ul>
+          </div>
+          <div style="margin-top:1.5rem;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:1.5rem;">
+            <div style="font-family:'Orbitron',monospace;font-size:0.8rem;color:var(--accent);letter-spacing:2px;margin-bottom:1rem;">CONTACT & FEEDBACK</div>
+            <p style="font-size:0.82rem;color:var(--steel);line-height:1.8;margin-bottom:1rem;">Built with ❤️ by <strong style="color:var(--text)">Mayukh Sarkar</strong> for students, teachers, and precision engineering learners worldwide.</p>
+            <div style="display:flex;gap:0.8rem;flex-wrap:wrap;">
+              <a href="mailto:mayukhsarkar1319@gmail.com" class="btn-primary" style="font-size:0.7rem;">✉ Email Us</a>
+              <button class="btn-primary" style="background:var(--accent2);" onclick="document.getElementById('feedbackModal').classList.add('show')">💬 Send Feedback</button>
+              <a href="https://unit.link/velvet-pages-official" target="_blank" class="btn-primary" style="background:rgba(0,212,255,0.1);color:var(--accent);border:1px solid var(--accent);">🌐 Contact Page</a>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- FEEDBACK MODAL -->
+<div class="modal-overlay" id="feedbackModal">
+  <div class="modal">
+    <button class="modal-close" onclick="document.getElementById('feedbackModal').classList.remove('show')">✕</button>
+    <h2>💬 Send Feedback</h2>
+    <input class="name-input" type="text" placeholder="Your name (optional)" id="feedbackName">
+    <textarea class="feedback-input" placeholder="Share your thoughts, suggestions, or bug reports..." id="feedbackText"></textarea>
+    <div style="display:flex;gap:0.8rem;">
+      <button class="btn-primary" style="flex:1;justify-content:center;" onclick="submitFeedback()">Send via Email</button>
+      <button class="btn-sm" style="flex:0.4;" onclick="document.getElementById('feedbackModal').classList.remove('show')">Cancel</button>
+    </div>
+    <p style="font-size:0.7rem;color:var(--muted);margin-top:0.8rem;font-family:'JetBrains Mono',monospace;">
+      📧 mayukhsarkar1319@gmail.com
+    </p>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-credits">
+    <div style="font-size:1.2rem;margin-bottom:0.8rem;">⚙</div>
+    VERNIERPRO — Made by <span>Mayukh Sarkar</span><br>
+    <a href="mailto:mayukhsarkar1319@gmail.com">mayukhsarkar1319@gmail.com</a> &nbsp;|&nbsp;
+    <a href="https://unit.link/velvet-pages-official" target="_blank">Contact Us ↗</a>
+    <div style="margin-top:0.8rem;color:#3a3f50;font-size:0.6rem;letter-spacing:3px;">
+      PRECISION INSTRUMENT SIMULATOR · EDUCATIONAL TOOL · © 2024
+    </div>
+  </div>
+</footer>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+let currentValue = 0.00;
+let unit = 'mm';
+let precision = 0.02;
+let vernierDivisions = 50;
+let measurementCount = 0;
+let history = [];
+let measurementMode = 'outside';
+
+// Quiz state
+let quizAnswer = 0;
+let quizScore = 0;
+let quizTotal = 0;
+let quizActive = false;
+
+// Canvas
+const caliperCanvas = document.getElementById('caliperCanvas');
+const caliperCtx = caliperCanvas.getContext('2d');
+const scaleCanvas = document.getElementById('scaleCanvas');
+const scaleCtx = scaleCanvas.getContext('2d');
+const quizCanvas = document.getElementById('quizCanvas');
+const quizCtx = quizCanvas.getContext('2d');
+
+// Resize canvases
+function resizeCanvases() {
+  const w = caliperCanvas.parentElement.clientWidth;
+  caliperCanvas.width = w;
+  scaleCanvas.width = scaleCanvas.parentElement.clientWidth;
+  quizCanvas.width = quizCanvas.parentElement.clientWidth;
+  drawAll();
+}
+
+// ============================================================
+// CONTROLS
+// ============================================================
+function setUnit(u) {
+  unit = u;
+  document.querySelectorAll('.unit-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  updateDisplay();
+  drawAll();
+}
+
+function setPrecision(p, btn) {
+  precision = p;
+  vernierDivisions = Math.round(1/p);
+  document.querySelectorAll('.prec-btn').forEach(b => b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  document.getElementById('statPrecision').textContent = p.toFixed(2);
+  updateDisplay();
+  drawAll();
+}
+
+function setMode(mode, btn) {
+  measurementMode = mode;
+  document.querySelectorAll('.mtype-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.mode-chip').forEach(b => b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  document.getElementById('modeChip'+capitalize(mode)).classList.add('active');
+  // Also sync mtype-btns
+  document.querySelectorAll('.mtype-btn').forEach(b => {
+    if(b.textContent.toLowerCase().includes(mode)) b.classList.add('active');
+  });
+  drawAll();
+}
+
+function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+function sliderUpdate(val) {
+  currentValue = parseFloat(val);
+  currentValue = snapToPrecision(currentValue);
+  updateDisplay();
+  drawAll();
+}
+
+function directUpdate(val) {
+  let v = parseFloat(val);
+  if(isNaN(v)) v = 0;
+  v = Math.max(0, Math.min(150, v));
+  currentValue = snapToPrecision(v);
+  document.getElementById('mainSlider').value = currentValue;
+  updateDisplay();
+  drawAll();
+}
+
+function snapToPrecision(v) {
+  return Math.round(v / precision) * precision;
+}
+
+function stepValue(step) {
+  currentValue = Math.max(0, Math.min(150, currentValue + step));
+  currentValue = snapToPrecision(currentValue);
+  document.getElementById('mainSlider').value = currentValue;
+  document.getElementById('directInput').value = currentValue.toFixed(2);
+  updateDisplay();
+  drawAll();
+}
+
+function randomize() {
+  currentValue = snapToPrecision(Math.random() * 120 + 5);
+  document.getElementById('mainSlider').value = currentValue;
+  document.getElementById('directInput').value = currentValue.toFixed(2);
+  updateDisplay();
+  drawAll();
+}
+
+function resetAll() {
+  currentValue = 0;
+  document.getElementById('mainSlider').value = 0;
+  document.getElementById('directInput').value = '0.00';
+  updateDisplay();
+  drawAll();
+}
+
+function saveMeasurement() {
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString();
+  history.unshift({ value: currentValue, unit, mode: measurementMode, time: timeStr, id: Date.now() });
+  measurementCount++;
+  document.getElementById('statMeasurements').textContent = measurementCount;
+  renderHistory();
+}
+
+function clearHistory() {
+  history = [];
+  measurementCount = 0;
+  document.getElementById('statMeasurements').textContent = 0;
+  renderHistory();
+}
+
+function exportHistory() {
+  if(history.length === 0) { alert('No measurements to export.'); return; }
+  let csv = 'ID,Value,Unit,Mode,Time\n';
+  history.forEach((h,i) => { csv += `${i+1},${h.value},${h.unit},${h.mode},${h.time}\n`; });
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'vernier_measurements.csv';
+  a.click();
+}
+
+function renderHistory() {
+  const list = document.getElementById('historyList');
+  if(history.length === 0) {
+    list.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--muted);font-size:0.8rem;font-family:\'JetBrains Mono\',monospace;">No saved measurements yet.<br>Press 💾 Save to record readings.</div>';
+    return;
+  }
+  list.innerHTML = history.map((h,i) => `
+    <div class="history-item" onclick="loadHistory(${i})">
+      <div>
+        <div class="h-val">${h.value.toFixed(2)} ${h.unit}</div>
+        <div class="h-time">${h.time}</div>
+      </div>
+      <span class="h-mode">${h.mode}</span>
+    </div>
+  `).join('');
+}
+
+function loadHistory(i) {
+  const h = history[i];
+  currentValue = h.value;
+  document.getElementById('mainSlider').value = currentValue;
+  document.getElementById('directInput').value = currentValue.toFixed(2);
+  updateDisplay();
+  drawAll();
+}
+
+// ============================================================
+// DISPLAY UPDATE
+// ============================================================
+function getDisplayValue() {
+  if(unit === 'mm') return currentValue;
+  if(unit === 'cm') return currentValue / 10;
+  if(unit === 'inch') return currentValue / 25.4;
+}
+
+function updateDisplay() {
+  const raw = currentValue;
+  const mainScaleReading = Math.floor(raw / precision) * precision;
+  // More accurately: main scale is in 0.5mm or 1mm divisions
+  const mainMM = Math.floor(raw * 2) / 2; // 0.5mm resolution main scale
+  const remainder = raw - mainMM;
+  const vernierDiv = Math.round(remainder / precision);
+
+  const displayVal = getDisplayValue();
+  const unitLabel = unit;
+
+  document.getElementById('readingMain').textContent = displayVal.toFixed(unit === 'inch' ? 4 : 2);
+  document.getElementById('readingUnit').textContent = unitLabel;
+
+  document.getElementById('bkMainScale').textContent = mainMM.toFixed(1);
+  document.getElementById('bkVernierDiv').textContent = vernierDiv;
+  document.getElementById('bkFinal').textContent = raw.toFixed(2);
+
+  document.getElementById('sliderVal').textContent = raw.toFixed(2) + ' mm';
+
+  // Slider fill
+  const pct = (raw / 150) * 100;
+  document.getElementById('sliderFill').style.width = pct + '%';
+  const thumbLeft = `calc(${pct}% - 8px)`;
+  document.getElementById('sliderThumb').style.left = thumbLeft;
+
+  // Formula
+  document.getElementById('formulaLive').textContent =
+    `${mainMM.toFixed(1)} + (${vernierDiv} × ${precision}) = ${raw.toFixed(2)} mm`;
+
+  // Tooltip
+  const tips = [
+    `Main scale: ${mainMM.toFixed(1)} mm | Vernier division ${vernierDiv} coincides → Reading: ${raw.toFixed(2)} mm`,
+    `Use the fine step buttons (±0.02) to precisely set values with ${precision}mm resolution.`,
+    `💡 Vernier division ${vernierDiv} of ${vernierDivisions} aligns with the main scale.`
+  ];
+  document.getElementById('readingTip').textContent = tips[vernierDiv % tips.length] || tips[0];
+}
+
+// ============================================================
+// DRAWING ENGINE
+// ============================================================
+function drawAll() {
+  drawCaliper();
+  drawScaleCloseup();
+}
+
+function drawCaliper() {
+  const W = caliperCanvas.width;
+  const H = caliperCanvas.height;
+  const ctx = caliperCtx;
+  ctx.clearRect(0,0,W,H);
+
+  // Background
+  const bg = ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,'#07090d');
+  bg.addColorStop(1,'#050709');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0,0,W,H);
+
+  // Grid
+  ctx.strokeStyle = 'rgba(0,212,255,0.04)';
+  ctx.lineWidth = 1;
+  for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+
+  // Parameters
+  const mm = currentValue;
+  const pxPerMM = (W * 0.62) / 150; // scale
+  const scale = pxPerMM;
+  const jawOffset = mm * scale;
+  const bodyX = W * 0.04;
+  const bodyY = H * 0.18;
+  const bodyH = H * 0.64;
+  const bodyW = W * 0.88;
+
+  if(measurementMode === 'outside') {
+    drawOutsideCaliperMode(ctx, W, H, mm, scale, bodyX, bodyY, bodyW, bodyH);
+  } else if(measurementMode === 'inside') {
+    drawInsideCaliperMode(ctx, W, H, mm, scale, bodyX, bodyY, bodyW, bodyH);
+  } else {
+    drawDepthCaliperMode(ctx, W, H, mm, scale, bodyX, bodyY, bodyW, bodyH);
+  }
+
+  // Title overlay
+  ctx.font = `600 ${Math.max(9,W*0.014)}px JetBrains Mono`;
+  ctx.fillStyle = 'rgba(0,212,255,0.4)';
+  ctx.fillText(`MODE: ${measurementMode.toUpperCase()} | ${mm.toFixed(2)} mm`, W*0.04, H-10);
+}
+
+function drawOutsideCaliperMode(ctx, W, H, mm, scale, bodyX, bodyY, bodyW, bodyH) {
+  const jawOffset = mm * scale;
+  const cx = W / 2;
+
+  // FIXED PART (right side body)
+  const fixedX = cx - 20;
+  const fixedW = W * 0.5;
+  const bodyTop = bodyY;
+  const bodyBot = bodyY + bodyH;
+  const mid = (bodyTop + bodyBot) / 2;
+
+  // === MAIN BODY (fixed) ===
+  drawCaliperBody(ctx, fixedX, bodyTop, fixedW, bodyH, W, H);
+
+  // === SLIDING JAW ===
+  const slideX = fixedX - jawOffset;
+  drawSlidingJaw(ctx, slideX, bodyTop, bodyH, W, H);
+
+  // === LOWER JAWS (outside measurement) ===
+  const jawH = bodyH * 0.38;
+  const jawWidth = 60;
+  const jawY = bodyBot;
+
+  // Fixed lower jaw
+  drawJaw(ctx, fixedX, jawY, jawWidth, jawH, '#b0bec5', false);
+  // Moving lower jaw
+  drawJaw(ctx, slideX, jawY, jawWidth, jawH, '#90a4ae', true);
+
+  // === DIMENSION INDICATOR ===
+  if(mm > 2) {
+    const gapLeft = slideX + jawWidth;
+    const gapRight = fixedX;
+    const arrowY = jawY + jawH * 0.6;
+    ctx.strokeStyle = 'rgba(57,255,20,0.8)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4,3]);
+    ctx.beginPath();ctx.moveTo(gapLeft, arrowY);ctx.lineTo(gapRight, arrowY);ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Arrowheads
+    drawArrowHead(ctx, gapLeft, arrowY, 1, '#39ff14');
+    drawArrowHead(ctx, gapRight, arrowY, -1, '#39ff14');
+
+    // Value label
+    ctx.font = `700 ${Math.max(10,W*0.015)}px Orbitron`;
+    ctx.fillStyle = '#39ff14';
+    ctx.textAlign = 'center';
+    ctx.shadowColor = '#39ff14';
+    ctx.shadowBlur = 10;
+    ctx.fillText(`${mm.toFixed(2)} mm`, (gapLeft + gapRight)/2, arrowY - 10);
+    ctx.shadowBlur = 0;
+    ctx.textAlign = 'left';
+  }
+
+  // === MAIN SCALE on body ===
+  drawMainScale(ctx, fixedX, bodyTop + 6, fixedW, jawOffset, mm, scale, W);
+
+  // === VERNIER SCALE ===
+  drawVernierScale(ctx, slideX, bodyTop + 30, mm, scale, W);
+
+  // Object representation
+  if(mm > 2) {
+    const gapLeft = slideX + jawWidth;
+    const gapRight = fixedX;
+    const objTop = jawY + 6;
+    const objH = jawH * 0.7;
+    const grad = ctx.createLinearGradient(gapLeft, 0, gapRight, 0);
+    grad.addColorStop(0, 'rgba(255,107,53,0.15)');
+    grad.addColorStop(0.5, 'rgba(255,107,53,0.25)');
+    grad.addColorStop(1, 'rgba(255,107,53,0.15)');
+    ctx.fillStyle = grad;
+    ctx.strokeStyle = 'rgba(255,107,53,0.6)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(gapLeft, objTop, gapRight - gapLeft, objH, 3);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.font = `500 ${Math.max(9,W*0.012)}px Sora`;
+    ctx.fillStyle = 'rgba(255,107,53,0.7)';
+    ctx.textAlign = 'center';
+    ctx.fillText('OBJECT', (gapLeft+gapRight)/2, objTop + objH/2 + 4);
+    ctx.textAlign = 'left';
+  }
+}
+
+function drawInsideCaliperMode(ctx, W, H, mm, scale, bodyX, bodyY, bodyW, bodyH) {
+  const jawOffset = mm * scale;
+  const cx = W / 2;
+  const fixedX = cx - 20;
+  const fixedW = W * 0.5;
+  const bodyBot = bodyY + bodyH;
+  const slideX = fixedX - jawOffset;
+
+  drawCaliperBody(ctx, fixedX, bodyY, fixedW, bodyH, W, H);
+  drawSlidingJaw(ctx, slideX, bodyY, bodyH, W, H);
+
+  // Upper (inside) jaws — smaller, pointing down from top
+  const ujH = bodyH * 0.25;
+  const ujW = 35;
+  const ujY = bodyY - ujH;
+
+  // Fixed upper jaw
+  ctx.fillStyle = '#90a4ae';
+  ctx.strokeStyle = '#607d8b';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(fixedX, bodyY);
+  ctx.lineTo(fixedX + ujW, bodyY);
+  ctx.lineTo(fixedX + ujW, ujY);
+  ctx.lineTo(fixedX, ujY + 10);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+
+  // Moving upper jaw
+  ctx.fillStyle = '#78909c';
+  ctx.beginPath();
+  ctx.moveTo(slideX + jawOffset + 60, bodyY);
+  ctx.lineTo(slideX + jawOffset + 60 - ujW, bodyY);
+  ctx.lineTo(slideX + jawOffset + 60 - ujW, ujY);
+  ctx.lineTo(slideX + jawOffset + 60, ujY + 10);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+
+  if(mm > 2) {
+    const left = slideX + jawOffset + 60 - ujW;
+    const right = fixedX;
+    const arrowY = ujY + ujH * 0.5;
+    ctx.strokeStyle = 'rgba(0,212,255,0.9)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4,3]);
+    ctx.beginPath();ctx.moveTo(left, arrowY);ctx.lineTo(right, arrowY);ctx.stroke();
+    ctx.setLineDash([]);
+    drawArrowHead(ctx, left, arrowY, 1, '#00d4ff');
+    drawArrowHead(ctx, right, arrowY, -1, '#00d4ff');
+    ctx.font = `700 ${Math.max(10,W*0.015)}px Orbitron`;
+    ctx.fillStyle = '#00d4ff';
+    ctx.textAlign = 'center';
+    ctx.shadowColor = '#00d4ff'; ctx.shadowBlur = 10;
+    ctx.fillText(`${mm.toFixed(2)} mm`, (left+right)/2, arrowY - 10);
+    ctx.shadowBlur = 0; ctx.textAlign = 'left';
+  }
+
+  drawMainScale(ctx, fixedX, bodyY + 6, fixedW, jawOffset, mm, scale, W);
+  drawVernierScale(ctx, slideX, bodyY + 30, mm, scale, W);
+}
+
+function drawDepthCaliperMode(ctx, W, H, mm, scale, bodyX, bodyY, bodyW, bodyH) {
+  const jawOffset = mm * scale;
+  const cx = W / 2;
+  const fixedX = cx - 20;
+  const fixedW = W * 0.5;
+  const bodyBot = bodyY + bodyH;
+  const slideX = fixedX - jawOffset;
+
+  drawCaliperBody(ctx, fixedX, bodyY, fixedW, bodyH, W, H);
+  drawSlidingJaw(ctx, slideX, bodyY, bodyH, W, H);
+
+  // Depth rod
+  const rodX = fixedX + fixedW * 0.5;
+  const rodTop = bodyBot;
+  const rodBot = rodTop + jawOffset;
+  const rodW = 8;
+
+  ctx.fillStyle = '#78909c';
+  ctx.strokeStyle = '#546e7a';
+  ctx.lineWidth = 1.5;
+  ctx.fillRect(rodX - rodW/2, rodTop, rodW, jawOffset + 3);
+  ctx.strokeRect(rodX - rodW/2, rodTop, rodW, jawOffset + 3);
+
+  // Depth hole
+  if(mm > 2) {
+    ctx.strokeStyle = 'rgba(0,212,255,0.5)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3,3]);
+    ctx.beginPath();ctx.moveTo(rodX, rodTop);ctx.lineTo(rodX, rodBot);ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.font = `700 ${Math.max(10,W*0.015)}px Orbitron`;
+    ctx.fillStyle = '#ffd700';
+    ctx.textAlign = 'left';
+    ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 10;
+    ctx.fillText(`Depth: ${mm.toFixed(2)} mm`, rodX + 15, (rodTop+rodBot)/2);
+    ctx.shadowBlur = 0;
+  }
+
+  drawMainScale(ctx, fixedX, bodyY + 6, fixedW, jawOffset, mm, scale, W);
+  drawVernierScale(ctx, slideX, bodyY + 30, mm, scale, W);
+}
+
+function drawCaliperBody(ctx, x, y, w, h, W, H) {
+  const grad = ctx.createLinearGradient(x, y, x, y+h);
+  grad.addColorStop(0, '#c8d8df');
+  grad.addColorStop(0.3, '#dbe6eb');
+  grad.addColorStop(0.7, '#b8c8d0');
+  grad.addColorStop(1, '#8fa0aa');
+  ctx.fillStyle = grad;
+  ctx.strokeStyle = '#607d8b';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, [4,4,4,4]);
+  ctx.fill(); ctx.stroke();
+
+  // Highlight
+  ctx.fillStyle = 'rgba(255,255,255,0.15)';
+  ctx.beginPath();
+  ctx.roundRect(x+2, y+2, w-4, h*0.25, 2);
+  ctx.fill();
+
+  // Screw holes
+  for(let i=0;i<3;i++){
+    const sx = x + w*0.15 + i*(w*0.3);
+    const sy = y + h*0.5;
+    ctx.fillStyle = '#546e7a';
+    ctx.beginPath();ctx.arc(sx,sy,4,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle = '#263238';
+    ctx.beginPath();ctx.arc(sx,sy,2,0,Math.PI*2);ctx.fill();
+  }
+}
+
+function drawSlidingJaw(ctx, x, y, h, W, H) {
+  const sjW = 80;
+  const grad = ctx.createLinearGradient(x, y, x, y+h);
+  grad.addColorStop(0, '#b8c8d0');
+  grad.addColorStop(0.5, '#cddae0');
+  grad.addColorStop(1, '#8899a6');
+  ctx.fillStyle = grad;
+  ctx.strokeStyle = '#546e7a';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.roundRect(x, y, sjW, h, [4,4,4,4]);
+  ctx.fill(); ctx.stroke();
+
+  // Thumb screw
+  ctx.fillStyle = '#263238';
+  ctx.strokeStyle = '#37474f';
+  ctx.lineWidth = 1;
+  const tsX = x + sjW/2;
+  const tsY = y + h*0.6;
+  ctx.beginPath();ctx.arc(tsX, tsY, 8, 0, Math.PI*2);ctx.fill();ctx.stroke();
+  ctx.fillStyle = '#607d8b';
+  ctx.beginPath();ctx.arc(tsX, tsY, 5, 0, Math.PI*2);ctx.fill();
+  ctx.strokeStyle = '#37474f';
+  for(let a=0;a<8;a++){
+    const ang = (a/8)*Math.PI*2;
+    ctx.beginPath();
+    ctx.moveTo(tsX+5*Math.cos(ang),tsY+5*Math.sin(ang));
+    ctx.lineTo(tsX+8*Math.cos(ang),tsY+8*Math.sin(ang));
+    ctx.stroke();
+  }
+}
+
+function drawJaw(ctx, x, y, w, h, color, isMoving) {
+  const grad = ctx.createLinearGradient(x, y, x+w, y+h);
+  grad.addColorStop(0, isMoving ? '#90a4ae' : '#b0bec5');
+  grad.addColorStop(1, isMoving ? '#607d8b' : '#78909c');
+  ctx.fillStyle = grad;
+  ctx.strokeStyle = '#546e7a';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x+w, y);
+  ctx.lineTo(x+w, y+h*0.7);
+  ctx.lineTo(x+w/2, y+h);
+  ctx.lineTo(x, y+h*0.7);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+}
+
+function drawArrowHead(ctx, x, y, dir, color) {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x + dir*10, y-5);
+  ctx.lineTo(x + dir*10, y+5);
+  ctx.closePath();
+  ctx.fill();
+}
+
+let jawWidth = 60;
+
+function drawMainScale(ctx, x, y, w, jawOffset, mm, scale, W) {
+  const scaleH = 22;
+  ctx.fillStyle = 'rgba(255,255,255,0.04)';
+  ctx.fillRect(x, y, w, scaleH);
+
+  const mainMM = Math.floor(mm * 2) / 2;
+
+  for(let i=0; i<=150; i++) {
+    const sx = x + i*scale;
+    if(sx > x + w || sx < x - 5) continue;
+    const isMM = (i % 1 === 0);
+    const is5 = (i % 5 === 0);
+    const is10 = (i % 10 === 0);
+    const tickH = is10 ? scaleH*0.9 : (is5 ? scaleH*0.65 : scaleH*0.4);
+    ctx.strokeStyle = is10 ? '#e0e8f0' : (is5 ? '#b8c8d0' : '#8090a0');
+    ctx.lineWidth = is10 ? 1.5 : 0.8;
+    ctx.beginPath();ctx.moveTo(sx, y);ctx.lineTo(sx, y+tickH);ctx.stroke();
+    if(is10) {
+      ctx.font = `500 ${Math.max(7,W*0.009)}px JetBrains Mono`;
+      ctx.fillStyle = '#90a0b0';
+      ctx.textAlign = 'center';
+      ctx.fillText(i, sx, y + scaleH + 10);
+    }
+  }
+
+  // Highlight main scale reading
+  const hlX = x + mainMM * scale;
+  ctx.strokeStyle = 'rgba(0,212,255,0.8)';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([3,2]);
+  ctx.beginPath(); ctx.moveTo(hlX, y); ctx.lineTo(hlX, y+scaleH); ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.textAlign = 'left';
+}
+
+function drawVernierScale(ctx, x, y, mm, scale, W) {
+  const vH = 16;
+  const vW = vernierDivisions * (scale - scale/vernierDivisions + scale/(vernierDivisions));
+  // Vernier divisions: n divisions = (n-1) main scale divisions
+  const vDivWidth = (vernierDivisions - 1) / vernierDivisions * scale;
+  // Actually: each vernier division = (1 - 1/n) mm in pixels... simplified:
+  const coinDiv = Math.round((mm - Math.floor(mm * 2)/2) / precision);
+
+  ctx.fillStyle = 'rgba(255,107,53,0.05)';
+  ctx.fillRect(x, y, vernierDivisions * vDivWidth + scale, vH);
+
+  for(let i=0; i<=vernierDivisions; i++) {
+    const sx = x + i * vDivWidth;
+    const is5 = (i % 5 === 0);
+    const is10 = (i % 10 === 0);
+    const tickH = is10 ? vH * 0.9 : (is5 ? vH * 0.65 : vH * 0.35);
+    const isCoin = (i === coinDiv);
+    ctx.strokeStyle = isCoin ? '#39ff14' : (is10 ? '#ff8060' : (is5 ? '#d06040' : '#804030'));
+    ctx.lineWidth = isCoin ? 2.5 : (is10 ? 1.2 : 0.7);
+    if(isCoin) {
+      ctx.shadowColor = '#39ff14';
+      ctx.shadowBlur = 8;
+    }
+    ctx.beginPath();ctx.moveTo(sx, y);ctx.lineTo(sx, y+tickH);ctx.stroke();
+    ctx.shadowBlur = 0;
+    if(is10 || isCoin) {
+      ctx.font = `${isCoin?'700':'500'} ${Math.max(7,W*0.009)}px JetBrains Mono`;
+      ctx.fillStyle = isCoin ? '#39ff14' : '#c07060';
+      ctx.textAlign = 'center';
+      ctx.fillText(i, sx, y + vH + 9);
+    }
+  }
+  ctx.textAlign = 'left';
+}
+
+// ============================================================
+// SCALE CLOSE-UP
+// ============================================================
+function drawScaleCloseup() {
+  const W = scaleCanvas.width;
+  const H = scaleCanvas.height;
+  const ctx = scaleCtx;
+  ctx.clearRect(0,0,W,H);
+
+  const bg = ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,'#080b0f');
+  bg.addColorStop(1,'#050709');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0,0,W,H);
+
+  const mm = currentValue;
+  const mainMM = Math.floor(mm * 2) / 2;
+  const coinDiv = Math.round((mm - mainMM) / precision);
+
+  // How many main scale divisions to show
+  const visibleMM = 3.5;
+  const pxPerMM = W * 0.78 / visibleMM;
+  const startMM = mainMM - 0.5;
+  const scaleY = H * 0.18;
+  const mainH = H * 0.42;
+  const vernH = H * 0.38;
+  const vernierY = H - vernH - H*0.04;
+
+  // Labels
+  ctx.font = `500 ${Math.max(8,W*0.012)}px JetBrains Mono`;
+  ctx.fillStyle = '#6b7280';
+  ctx.fillText('MAIN SCALE', W*0.02, scaleY - 5);
+  ctx.fillText('VERNIER SCALE', W*0.02, vernierY - 5);
+
+  // MAIN SCALE
+  for(let d = Math.floor(startMM * 2) / 2; d <= startMM + visibleMM + 0.5; d += 0.5) {
+    const px = (d - startMM) * pxPerMM + W*0.08;
+    if(px < 0 || px > W) continue;
+    const is1mm = (Math.round(d * 10) % 10 === 0);
+    const is5 = (Math.round(d) % 5 === 0 && Math.round(d*2) % 2 === 0);
+    const tickH = is5 ? mainH * 0.9 : (is1mm ? mainH * 0.7 : mainH * 0.45);
+    const isMain = (d === mainMM);
+    ctx.strokeStyle = isMain ? 'rgba(0,212,255,0.9)' : (is5 ? '#d0dce8' : (is1mm ? '#909ab0' : '#505868'));
+    ctx.lineWidth = isMain ? 2.5 : (is5 ? 1.5 : 0.8);
+    if(isMain) {ctx.shadowColor='#00d4ff';ctx.shadowBlur=8;}
+    ctx.beginPath();ctx.moveTo(px, scaleY);ctx.lineTo(px, scaleY+tickH);ctx.stroke();
+    ctx.shadowBlur = 0;
+    if(is5) {
+      ctx.font = `500 ${Math.max(8,W*0.013)}px JetBrains Mono`;
+      ctx.fillStyle = isMain ? '#00d4ff' : '#8090a8';
+      ctx.textAlign = 'center';
+      ctx.fillText(d, px, scaleY + mainH + 14);
+    }
+  }
+
+  // VERNIER SCALE  
+  const vDivWidth = (vernierDivisions - 1) / vernierDivisions * pxPerMM;
+  const vStartX = (mainMM - startMM) * pxPerMM + W*0.08;
+
+  for(let i=0; i<=vernierDivisions; i++) {
+    const vx = vStartX + i * vDivWidth;
+    if(vx < 0 || vx > W + 20) continue;
+    const is5 = (i % 5 === 0);
+    const is10 = (i % 10 === 0);
+    const isCoin = (i === coinDiv);
+    const tickH = is10 ? vernH * 0.85 : (is5 ? vernH * 0.6 : vernH * 0.35);
+    ctx.strokeStyle = isCoin ? '#39ff14' : (is10 ? '#ff7050' : (is5 ? '#c05030' : '#703020'));
+    ctx.lineWidth = isCoin ? 3 : (is10 ? 1.5 : 0.8);
+    if(isCoin) {ctx.shadowColor='#39ff14';ctx.shadowBlur=12;}
+    ctx.beginPath();ctx.moveTo(vx, vernierY);ctx.lineTo(vx, vernierY+tickH);ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    if(is5 || isCoin) {
+      ctx.font = `${isCoin?'700':'500'} ${Math.max(8,W*0.013)}px JetBrains Mono`;
+      ctx.fillStyle = isCoin ? '#39ff14' : '#c06040';
+      ctx.textAlign = 'center';
+      ctx.fillText(i, vx, vernierY + vernH + 12);
+    }
+
+    if(isCoin) {
+      // Coincidence glow beam
+      ctx.strokeStyle = 'rgba(57,255,20,0.15)';
+      ctx.lineWidth = 8;
+      ctx.beginPath();ctx.moveTo(vx,scaleY);ctx.lineTo(vx,vernierY+vernH);ctx.stroke();
+      ctx.strokeStyle = 'rgba(57,255,20,0.35)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4,3]);
+      ctx.beginPath();ctx.moveTo(vx,scaleY);ctx.lineTo(vx,vernierY+vernH);ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  }
+
+  // Readout
+  ctx.fillStyle = 'rgba(57,255,20,0.08)';
+  ctx.beginPath();
+  ctx.roundRect(W*0.72, H*0.25, W*0.26, H*0.5, 4);
+  ctx.fill();
+  ctx.font = `700 ${Math.max(9,W*0.016)}px Orbitron`;
+  ctx.fillStyle = '#39ff14';
+  ctx.shadowColor = '#39ff14'; ctx.shadowBlur = 10;
+  ctx.textAlign = 'center';
+  ctx.fillText(`÷${coinDiv}`, W*0.85, H*0.53);
+  ctx.shadowBlur = 0;
+  ctx.font = `500 ${Math.max(7,W*0.01)}px JetBrains Mono`;
+  ctx.fillStyle = '#6b7280';
+  ctx.fillText('COIN. DIV', W*0.85, H*0.7);
+  ctx.textAlign = 'left';
+}
+
+// ============================================================
+// QUIZ
+// ============================================================
+let quizValue = 0;
+
+function newQuiz() {
+  quizActive = true;
+  quizValue = snapToPrecision(Math.random() * 100 + 5);
+  const correct = quizValue;
+
+  // Generate wrong answers
+  const offsets = [precision*3, precision*7, -precision*4, precision*12, -precision*8, precision*5];
+  let opts = [correct];
+  while(opts.length < 4) {
+    const wrong = snapToPrecision(correct + offsets[Math.floor(Math.random()*offsets.length)]);
+    if(wrong > 0 && wrong !== correct && !opts.includes(wrong)) opts.push(wrong);
+  }
+  opts = shuffleArray(opts);
+
+  // Draw quiz caliper
+  drawQuizCaliper(quizValue);
+
+  document.getElementById('quizDisplay').textContent = 'Read the caliper above ↑';
+  const optHtml = opts.map(v => `<button class="quiz-opt" onclick="checkAnswer(${v}, ${correct})">${v.toFixed(2)} mm</button>`).join('');
+  document.getElementById('quizOptions').innerHTML = optHtml;
+  document.getElementById('quizFeedback').textContent = '';
+}
+
+function shuffleArray(arr) {
+  return arr.sort(() => Math.random() - 0.5);
+}
+
+function checkAnswer(selected, correct) {
+  quizTotal++;
+  document.getElementById('quizTotal').textContent = quizTotal;
+  const isCorrect = (selected === correct);
+  if(isCorrect) { quizScore++; }
+  document.getElementById('quizScore').textContent = quizScore;
+  document.getElementById('statScore').textContent = `${quizScore}/${quizTotal}`;
+
+  document.querySelectorAll('.quiz-opt').forEach(btn => {
+    btn.disabled = true;
+    if(Math.abs(parseFloat(btn.textContent) - correct) < 0.001) btn.classList.add('correct');
+    else if(Math.abs(parseFloat(btn.textContent) - selected) < 0.001) btn.classList.add('wrong');
+  });
+
+  document.getElementById('quizFeedback').textContent = isCorrect
+    ? `✅ Correct! ${correct.toFixed(2)} mm`
+    : `❌ Wrong. The correct answer was ${correct.toFixed(2)} mm`;
+
+  setTimeout(newQuiz, 1800);
+}
+
+function drawQuizCaliper(mm) {
+  const W = quizCanvas.width;
+  const H = quizCanvas.height;
+  const ctx = quizCtx;
+  ctx.clearRect(0,0,W,H);
+
+  const bg = ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,'#080b0f');
+  bg.addColorStop(1,'#050709');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0,0,W,H);
+
+  const visibleMM = 5;
+  const pxPerMM = W * 0.8 / visibleMM;
+  const mainMM = Math.floor(mm * 2) / 2;
+  const coinDiv = Math.round((mm - mainMM) / precision);
+  const startMM = mainMM - 0.3;
+
+  const scaleY = H * 0.1;
+  const mainH = H * 0.38;
+  const vernierY = H * 0.62;
+  const vernH = H * 0.3;
+
+  ctx.font = `500 9px JetBrains Mono`;
+  ctx.fillStyle = '#555';
+  ctx.fillText('MAIN', W*0.02, scaleY + mainH/2);
+  ctx.fillText('VERNIER', W*0.02, vernierY + vernH/2);
+
+  for(let d = Math.floor(startMM * 2) / 2; d <= startMM + visibleMM + 0.5; d += 0.5) {
+    const px = (d - startMM) * pxPerMM + W*0.12;
+    if(px < 0 || px > W) continue;
+    const is1mm = (Math.round(d * 10) % 10 === 0);
+    const is5 = (Math.round(d) % 5 === 0 && Math.round(d*2) % 2 === 0);
+    const tickH = is5 ? mainH * 0.9 : (is1mm ? mainH * 0.7 : mainH * 0.4);
+    ctx.strokeStyle = is5 ? '#c0d0e0' : (is1mm ? '#8090a8' : '#404858');
+    ctx.lineWidth = is5 ? 1.5 : 0.8;
+    ctx.beginPath();ctx.moveTo(px,scaleY);ctx.lineTo(px,scaleY+tickH);ctx.stroke();
+    if(is5) {
+      ctx.font = '9px JetBrains Mono';
+      ctx.fillStyle = '#7080a0';
+      ctx.textAlign = 'center';
+      ctx.fillText(Math.round(d), px, scaleY+mainH+11);
+    }
+  }
+
+  const vDivW = (vernierDivisions - 1) / vernierDivisions * pxPerMM;
+  const vStartX = (mainMM - startMM) * pxPerMM + W*0.12;
+
+  for(let i=0; i<=vernierDivisions; i++) {
+    const vx = vStartX + i * vDivW;
+    if(vx < -10 || vx > W+10) continue;
+    const is5 = (i%5===0);
+    const is10 = (i%10===0);
+    const isCoin = (i===coinDiv);
+    const tickH = is10 ? vernH*0.85 : (is5 ? vernH*0.6 : vernH*0.35);
+    ctx.strokeStyle = isCoin ? '#39ff14' : (is10 ? '#ff7050' : (is5 ? '#a04030' : '#602018'));
+    ctx.lineWidth = isCoin ? 2.5 : (is10 ? 1.2 : 0.7);
+    if(isCoin){ctx.shadowColor='#39ff14';ctx.shadowBlur=10;}
+    ctx.beginPath();ctx.moveTo(vx,vernierY);ctx.lineTo(vx,vernierY+tickH);ctx.stroke();
+    ctx.shadowBlur=0;
+    if(is10 || isCoin) {
+      ctx.font = `${isCoin?'700':'500'} 9px JetBrains Mono`;
+      ctx.fillStyle = isCoin ? '#39ff14' : '#c06040';
+      ctx.textAlign = 'center';
+      ctx.fillText(i, vx, vernierY+vernH+11);
+    }
+  }
+  ctx.textAlign = 'left';
+}
+
+// ============================================================
+// TABS
+// ============================================================
+function showTab(id, btn) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ============================================================
+// FEEDBACK
+// ============================================================
+function submitFeedback() {
+  const name = document.getElementById('feedbackName').value.trim();
+  const text = document.getElementById('feedbackText').value.trim();
+  if(!text) { alert('Please enter your feedback.'); return; }
+  const subject = encodeURIComponent('VernierPro Feedback' + (name ? ` from ${name}` : ''));
+  const body = encodeURIComponent(text + (name ? `\n\n— ${name}` : ''));
+  window.open(`mailto:mayukhsarkar1319@gmail.com?subject=${subject}&body=${body}`);
+  document.getElementById('feedbackModal').classList.remove('show');
+  document.getElementById('feedbackText').value = '';
+  document.getElementById('feedbackName').value = '';
+}
+
+// ============================================================
+// INIT
+// ============================================================
+window.addEventListener('resize', () => {
+  resizeCanvases();
+});
+
+window.addEventListener('load', () => {
+  resizeCanvases();
+  updateDisplay();
+  drawAll();
+  // Draw initial quiz caliper
+  setTimeout(() => {
+    if(quizCanvas.width > 0) drawQuizCaliper(45.34);
+  }, 300);
+});
+
+updateDisplay();
+</script>
+</body>
+</html>
